@@ -1,0 +1,7 @@
+# -- [m]CHOICE --
+
+CHOICE.COM: MAIN.OBJ
+            tlink /x /t MAIN.OBJ,CHOICE.COM
+MAIN.OBJ: MAIN.ASM MSG.INC
+          tasm /m MAIN.ASM
+
