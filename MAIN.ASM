@@ -9,6 +9,7 @@
 
 CHOICESLEN  EQU 7ah
 ERRORFLAG   EQU -1
+EOS         EQU 0
 
 
 PRINTSTR    MACRO str
@@ -30,7 +31,6 @@ Main            PROC
                 cmp al,2      ;DOS 2+
                 jnb verOK
                 lea si,errVNMsg
-                mov cx,VNML
                 call PrnMsg
                 ret           ;=INT 20h
 verOK:
@@ -50,13 +50,12 @@ verOK:
                 cmp ax,ERRORFLAG
                 jne exit
                 lea si,errDCMsg
-                mov cx,DCML
                 call PrnMsg
                 jmp exitNow
 
 waitForKey:
                 PRINTSTR prompt
-        getKey:
+getKey:
                 mov ax,0c08h
                 int 21h
                 cmp al,3
@@ -69,7 +68,6 @@ waitForKey:
                 je getKey
 exit:
                 lea si,defChar
-                mov cx,3
                 call PrnMsg
 exitNow:
                 mov ah,4ch
@@ -79,32 +77,28 @@ prnErrorMsg:
                 cmp statCMDL,2
                 jne errTO
                 lea si,errSWMsg
-                mov cx,SWML
                 call PrnMsg
                 lea si,fb
-                mov cx,FL
                 call PrnMsg
                 jmp exitNow
          errTO:
                 cmp statCMDL,3
                 jne errPR
                 lea si,errTOMsg
-                mov cx,TOML
                 call PrnMsg
                 jmp exitNow
          errPR:
                 cmp statCMDL,4
                 jne prnHL
                 lea si,errPRMsg
-                mov cx,PRML
                 call PrnMsg
                 lea si,fb
-                mov cx,FL
                 call PrnMsg
                 jmp exitNow
          prnHL:
                 lea si,help
-                mov cx,HL
+                call PrnMsg
+                lea si,fe
                 call PrnMsg
                 jmp exitNow
 ;----------------------------------------------------------------------------
@@ -143,7 +137,7 @@ SetupPrompt     PROC
                 dec di
                 mov ax,'?]'
                 stosw
-    endPrompt:
+     endPrompt:
                 mov BYTE PTR [di],'$'
                 ret
 SetupPrompt     ENDP
@@ -169,7 +163,6 @@ CheckChar       PROC
                 ret
         noChar:
                 lea si,beep
-                mov cx,1
                 call PrnMsg
                 mov ax,ERRORFLAG
                 ret
@@ -195,6 +188,7 @@ DelayMode       PROC
                 int 15h
                 pop cx
                 call chkKey
+                jc exitNow
                 cmp ax,ERRORFLAG
                 jne CharFromCon
                 loop _wait
@@ -218,11 +212,13 @@ ChkKey          PROC
                 cmp al,3
                 jne nGK
                 mov al,0
-                ;pop cx ;?
-                jmp exitNow
+                pop cx
+                stc
+                ret
            nGK:
                 call CheckChar
                 pop cx
+                clc
                 ret
 ChkKey          ENDP
 
@@ -231,18 +227,21 @@ PrnMsg          PROC
                 mov ah,0eh
             lp:
                 lodsb
+                or al,al
+                jz ep
                 int 10h
-                loop lp
+                jmp lp
+            ep:
                 pop ax
                 ret
 PrnMsg          ENDP
 
                 INCLUDE gcmdl2.asm
 
-beep      DB 7
+beep      DB 7,EOS
 statCMDL  DB 1
 pFlags    DB 0
-defChar   DB ?,13,10
+defChar   DB ?,13,10,EOS
 defErrLvl DB ?
 prTail    DW OFFSET prompt
 delay     DW 0

@@ -51,10 +51,10 @@ gCmdL:
                 je switches
                 ;prompt
                 test pFlags,10000b
-                jz text
+                jz _tx
                 mov statCMDL,4
                 jmp endParametrs
-          text:
+           _tx:
                 or pFlags,10000b
                 lea di,prompt
                 call GetPrompt
@@ -94,10 +94,10 @@ switchC:
                 jmp endParametrs
 switchT:
                 cmp al,T
-                je swT
+                je _st
                 mov statCMDL,2
                 jmp endParametrs
-           swT:
+           _st:
                 test pFlags,1
                 jnz errSwT
                 or pFlags,1
@@ -209,6 +209,13 @@ GetSwTParam     PROC
                 dec si  ;1d
                 ret
           twoD:
+                cmp BYTE PTR [si],SPC
+                je _td
+                cmp BYTE PTR [si],TAB
+                je _td
+                cmp BYTE PTR [si],CR
+                jne errGS
+           _td:
                 sub ax,'00'
                 shl al,1
                 mov dl,al
@@ -217,6 +224,7 @@ GetSwTParam     PROC
                 add al,ah
                 mov BYTE PTR delay,al
                 ret
+
          errGS:
                 mov ax,ERRORFLAG
                 ret
